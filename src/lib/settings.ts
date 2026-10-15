@@ -28,6 +28,10 @@ export function trimSettings<T extends { fullName: string; email: string }>(
   };
 }
 
+export function formatSuccessMessage(fullName: string): string {
+  return `Settings saved successfully for ${fullName.trim()}.`;
+}
+
 export function validateSettings(values: {
   fullName: string;
   email: string;
@@ -63,11 +67,11 @@ export function loadSettings(): UserSettings {
     return {
       fullName:
         typeof parsed.fullName === "string"
-          ? parsed.fullName
+          ? parsed.fullName.trim()
           : defaultSettings.fullName,
       email:
         typeof parsed.email === "string"
-          ? parsed.email
+          ? parsed.email.trim()
           : defaultSettings.email,
       theme: parsed.theme ?? defaultSettings.theme,
     };

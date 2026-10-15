@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import {
+  formatSuccessMessage,
   loadSettings,
   saveSettings,
   trimSettings,
@@ -28,11 +29,13 @@ export function SettingsForm() {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [status, setStatus] = useState<"idle" | "success">("idle");
+  const [savedName, setSavedName] = useState<string | null>(null);
 
   const fullNameInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
-  const allErrors = validateSettings(values);
+  const trimmedValues = trimSettings(values);
+  const allErrors = validateSettings(trimmedValues);
 
   const visibleErrors: SettingsErrors = {
     fullName:
@@ -43,25 +46,25 @@ export function SettingsForm() {
 
   function handleChange(field: "fullName" | "email", value: string) {
     setStatus("idle");
+    setSavedName(null);
     setValues((prev) => ({ ...prev, [field]: value }));
   }
 
   function handleBlur(field: "fullName" | "email") {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setValues((prev) => ({ ...prev, [field]: prev[field].trim() }));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitted(true);
 
-    const trimmedValues = trimSettings(values);
-    setValues(trimmedValues);
-
-    const validationErrors = validateSettings(trimmedValues);
+    // Trim values (including email) before validation and submission flow
+    const submissionValues = trimSettings(values);
+    const validationErrors = validateSettings(submissionValues);
 
     if (Object.keys(validationErrors).length > 0) {
       setStatus("idle");
+      setSavedName(null);
       if (validationErrors.fullName) {
         fullNameInputRef.current?.focus();
       } else if (validationErrors.email) {
@@ -70,7 +73,10 @@ export function SettingsForm() {
       return;
     }
 
-    saveSettings(trimmedValues);
+    // Success flow: persist trimmed values and update state with trimmed values
+    saveSettings(submissionValues);
+    setValues(submissionValues);
+    setSavedName(submissionValues.fullName);
     setStatus("success");
   }
 
@@ -80,13 +86,13 @@ export function SettingsForm() {
       noValidate
       className="flex w-full flex-col gap-6"
     >
-      {status === "success" ? (
+      {status === "success" && savedName ? (
         <div
           role="status"
           aria-live="polite"
           className="rounded-lg border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
         >
-          Settings saved successfully.
+          {formatSuccessMessage(savedName)}
         </div>
       ) : null}
 

@@ -1,6 +1,7 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
+  formatSuccessMessage,
   trimSettings,
   validateSettings,
   saveSettings,
@@ -163,6 +164,63 @@ describe("User Settings Validation & Logic", () => {
     });
   });
 
+  describe("Email field whitespace trimming & validation", () => {
+    it("accepts email with leading and trailing spaces ' sanyul@example.com ' as valid 'sanyul@example.com'", () => {
+      const result = validateSettings({
+        fullName: "Sanyul Islam",
+        email: " sanyul@example.com ",
+      });
+
+      assert.equal(result.email, undefined);
+      assert.equal(Object.keys(result).length, 0);
+
+      const trimmed = trimSettings({
+        fullName: "Sanyul Islam",
+        email: " sanyul@example.com ",
+      });
+      assert.equal(trimmed.email, "sanyul@example.com");
+    });
+
+    it("accepts email with leading tabs and trailing newlines", () => {
+      const result = validateSettings({
+        fullName: "Sanyul Islam",
+        email: "\t sanyul@example.com \n",
+      });
+
+      assert.equal(result.email, undefined);
+    });
+
+    it("rejects whitespace-only email as a required-field error ('Email is required.')", () => {
+      const result = validateSettings({
+        fullName: "Sanyul Islam",
+        email: "    ",
+      });
+
+      assert.equal(result.email, "Email is required.");
+    });
+
+    it("rejects email containing only tabs and newlines as a required-field error", () => {
+      const result = validateSettings({
+        fullName: "Sanyul Islam",
+        email: "\t\n\r ",
+      });
+
+      assert.equal(result.email, "Email is required.");
+    });
+
+    it("uses trimmed email value in the success flow when persisting", () => {
+      saveSettings({
+        fullName: "Sanyul Islam",
+        email: " sanyul@example.com ",
+      });
+
+      const raw = fakeLocalStorage.getItem(SETTINGS_STORAGE_KEY);
+      assert.ok(raw);
+      const parsed = JSON.parse(raw);
+      assert.equal(parsed.email, "sanyul@example.com");
+    });
+  });
+
   describe("Invalid email format", () => {
     it("rejects email missing '@' symbol", () => {
       const result = validateSettings({
@@ -250,6 +308,60 @@ describe("User Settings Validation & Logic", () => {
       fakeLocalStorage.setItem(SETTINGS_STORAGE_KEY, "{corrupt-json");
       const loaded = loadSettings();
       assert.deepEqual(loaded, defaultSettings);
+    });
+  });
+
+  describe("Success notification formatting & name trimming", () => {
+    it("formats success message with trimmed Full Name", () => {
+      const message = formatSuccessMessage("Sanyul Islam");
+      assert.equal(message, "Settings saved successfully for Sanyul Islam.");
+    });
+
+    it("removes leading and trailing whitespace from Full Name in the notification", () => {
+      const message = formatSuccessMessage("   Sanyul Islam   ");
+      assert.equal(message, "Settings saved successfully for Sanyul Islam.");
+    });
+
+    it("formats success message correctly with submitted name and trimmed email", () => {
+      const input = {
+        fullName: "  Sanyul Islam  ",
+        email: "  sanyul@example.com  ",
+      };
+
+      const errors = validateSettings(input);
+      assert.equal(Object.keys(errors).length, 0);
+
+      const trimmed = trimSettings(input);
+      assert.equal(trimmed.fullName, "Sanyul Islam");
+      assert.equal(trimmed.email, "sanyul@example.com");
+
+      const notification = formatSuccessMessage(trimmed.fullName);
+      assert.equal(
+        notification,
+        "Settings saved successfully for Sanyul Islam.",
+      );
+    });
+
+    it("does not allow success flow when validation fails for whitespace-only fullName", () => {
+      const input = {
+        fullName: "   ",
+        email: "sanyul@example.com",
+      };
+
+      const errors = validateSettings(input);
+      assert.ok(errors.fullName);
+      assert.equal(errors.fullName, "Full name is required.");
+    });
+
+    it("does not allow success flow when validation fails for whitespace-only email", () => {
+      const input = {
+        fullName: "Sanyul Islam",
+        email: "   ",
+      };
+
+      const errors = validateSettings(input);
+      assert.ok(errors.email);
+      assert.equal(errors.email, "Email is required.");
     });
   });
 });
