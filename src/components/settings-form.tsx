@@ -8,6 +8,7 @@ import {
 import {
   loadSettings,
   saveSettings,
+  trimSettings,
   validateSettings,
   type SettingsErrors,
   type UserSettings,
@@ -47,13 +48,17 @@ export function SettingsForm() {
 
   function handleBlur(field: "fullName" | "email") {
     setTouched((prev) => ({ ...prev, [field]: true }));
+    setValues((prev) => ({ ...prev, [field]: prev[field].trim() }));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitted(true);
 
-    const validationErrors = validateSettings(values);
+    const trimmedValues = trimSettings(values);
+    setValues(trimmedValues);
+
+    const validationErrors = validateSettings(trimmedValues);
 
     if (Object.keys(validationErrors).length > 0) {
       setStatus("idle");
@@ -65,7 +70,7 @@ export function SettingsForm() {
       return;
     }
 
-    saveSettings(values);
+    saveSettings(trimmedValues);
     setStatus("success");
   }
 

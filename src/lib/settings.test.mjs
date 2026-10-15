@@ -1,6 +1,7 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
+  trimSettings,
   validateSettings,
   saveSettings,
   loadSettings,
@@ -26,6 +27,28 @@ describe("User Settings Validation & Logic", () => {
     fakeLocalStorage.clear();
   });
 
+  describe("trimSettings helper", () => {
+    it("removes leading and trailing whitespace from both Full Name and Email", () => {
+      const trimmed = trimSettings({
+        fullName: " Sanyul Islam ",
+        email: " sanyul@example.com ",
+      });
+
+      assert.equal(trimmed.fullName, "Sanyul Islam");
+      assert.equal(trimmed.email, "sanyul@example.com");
+    });
+
+    it("trims whitespace-only values to empty strings", () => {
+      const trimmed = trimSettings({
+        fullName: "   \t  ",
+        email: "  \n  ",
+      });
+
+      assert.equal(trimmed.fullName, "");
+      assert.equal(trimmed.email, "");
+    });
+  });
+
   describe("Valid submission", () => {
     it("returns no validation errors for valid name and email", () => {
       const result = validateSettings({
@@ -49,7 +72,7 @@ describe("User Settings Validation & Logic", () => {
     });
   });
 
-  describe("Required fields", () => {
+  describe("Required fields & Whitespace-only rejection", () => {
     it("fails when both fields are empty", () => {
       const result = validateSettings({
         fullName: "",
@@ -79,10 +102,8 @@ describe("User Settings Validation & Logic", () => {
       assert.equal(result.fullName, undefined);
       assert.equal(result.email, "Email is required.");
     });
-  });
 
-  describe("Whitespace trimming", () => {
-    it("treats whitespace-only fullName as empty", () => {
+    it("rejects whitespace-only fullName with required error", () => {
       const result = validateSettings({
         fullName: "    \t   ",
         email: "valid@example.com",
@@ -92,7 +113,7 @@ describe("User Settings Validation & Logic", () => {
       assert.equal(result.email, undefined);
     });
 
-    it("treats whitespace-only email as empty", () => {
+    it("rejects whitespace-only email with required error", () => {
       const result = validateSettings({
         fullName: "Alex Morgan",
         email: "    \n   ",
@@ -102,10 +123,38 @@ describe("User Settings Validation & Logic", () => {
       assert.equal(result.email, "Email is required.");
     });
 
-    it("validates successfully when fields have leading and trailing whitespace around valid content", () => {
+    it("rejects when both fields are whitespace-only", () => {
       const result = validateSettings({
-        fullName: "   Morgan Riley   ",
-        email: "   morgan@example.com   ",
+        fullName: "   ",
+        email: "   ",
+      });
+
+      assert.equal(result.fullName, "Full name is required.");
+      assert.equal(result.email, "Email is required.");
+    });
+  });
+
+  describe("Whitespace trimming with valid inputs", () => {
+    it("correctly handles inputs with leading and trailing whitespace like ' Sanyul Islam ' and ' sanyul@example.com '", () => {
+      const input = {
+        fullName: " Sanyul Islam ",
+        email: " sanyul@example.com ",
+      };
+
+      const result = validateSettings(input);
+      assert.equal(result.fullName, undefined);
+      assert.equal(result.email, undefined);
+      assert.equal(Object.keys(result).length, 0);
+
+      const trimmed = trimSettings(input);
+      assert.equal(trimmed.fullName, "Sanyul Islam");
+      assert.equal(trimmed.email, "sanyul@example.com");
+    });
+
+    it("validates successfully when fields have multiple tabs and spaces around valid content", () => {
+      const result = validateSettings({
+        fullName: "\t  Morgan Riley \t ",
+        email: "  morgan@example.com  ",
       });
 
       assert.equal(result.fullName, undefined);
@@ -162,18 +211,18 @@ describe("User Settings Validation & Logic", () => {
     });
   });
 
-  describe("Persistence & Success/Error state behavior", () => {
-    it("trims and persists settings to storage on save", () => {
+  describe("Persistence & Success flow trimming behavior", () => {
+    it("persists trimmed values 'Sanyul Islam' and 'sanyul@example.com' on save", () => {
       saveSettings({
-        fullName: "   Casey Quinn   ",
-        email: "   casey@example.com   ",
+        fullName: " Sanyul Islam ",
+        email: " sanyul@example.com ",
       });
 
       const raw = fakeLocalStorage.getItem(SETTINGS_STORAGE_KEY);
       assert.ok(raw);
       const parsed = JSON.parse(raw);
-      assert.equal(parsed.fullName, "Casey Quinn");
-      assert.equal(parsed.email, "casey@example.com");
+      assert.equal(parsed.fullName, "Sanyul Islam");
+      assert.equal(parsed.email, "sanyul@example.com");
       assert.equal(parsed.theme, "system");
     });
 

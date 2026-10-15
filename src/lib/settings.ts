@@ -18,22 +18,30 @@ export type SettingsErrors = Partial<Record<"fullName" | "email", string>>;
 
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export function trimSettings<T extends { fullName: string; email: string }>(
+  values: T,
+): T {
+  return {
+    ...values,
+    fullName: values.fullName.trim(),
+    email: values.email.trim(),
+  };
+}
+
 export function validateSettings(values: {
   fullName: string;
   email: string;
 }): SettingsErrors {
   const errors: SettingsErrors = {};
+  const trimmed = trimSettings(values);
 
-  const trimmedFullName = values.fullName.trim();
-  const trimmedEmail = values.email.trim();
-
-  if (!trimmedFullName) {
+  if (!trimmed.fullName) {
     errors.fullName = "Full name is required.";
   }
 
-  if (!trimmedEmail) {
+  if (!trimmed.email) {
     errors.email = "Email is required.";
-  } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
+  } else if (!EMAIL_PATTERN.test(trimmed.email)) {
     errors.email = "Please enter a valid email address.";
   }
 
@@ -73,12 +81,14 @@ export function saveSettings(values: UserSettings): void {
     return;
   }
 
+  const trimmed = trimSettings(values);
+
   localStorage.setItem(
     SETTINGS_STORAGE_KEY,
     JSON.stringify({
-      fullName: values.fullName.trim(),
-      email: values.email.trim(),
-      theme: values.theme ?? "system",
+      fullName: trimmed.fullName,
+      email: trimmed.email,
+      theme: trimmed.theme ?? "system",
     }),
   );
 }
