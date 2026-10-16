@@ -32,4 +32,4 @@ The vague prompt already produced labels and ARIA attributes; the precise prompt
 
 ## Workflow for Future Projects
 
-I will use the Round 2 approach: inspect the codebase, agree a plan before coding, implement in small commits, add unit and component-level tests (including whitespace edge cases), check accessibility manually, and run tests before accepting results. I will commit after each round so each can be compared cleanly, and record these rules in `CLAUDE.md`.
+I will use the Round 2 approach: inspect the codebase, agree a plan before coding, implement in small commits, add unit and component-level tests (including whitespace edge cases), check accessibility manually, and run tests before accepting results. I will commit after each round so each can be compared cleanly, and I added project-specific rules to `CLAUDE.md`, such as always calling `trimSettings` in the form before validating.
