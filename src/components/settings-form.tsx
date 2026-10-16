@@ -29,13 +29,20 @@ const FIELD_IDS = {
 } as const;
 
 export function SettingsForm() {
-  const [values, setValues] = useState<UserSettings>(defaultSettings);
+  const [values, setValues] = useState<UserSettings>(() => loadSettings());
   const [errors, setErrors] = useState<SettingsErrors>({});
   const [status, setStatus] = useState<"idle" | "saved">("idle");
 
   useEffect(() => {
-    setValues(loadSettings());
-  }, []);
+    const root = document.documentElement;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark =
+      values.theme === "dark" ||
+      (values.theme === "system" && prefersDark);
+
+    root.classList.toggle("dark", isDark);
+    root.style.colorScheme = isDark ? "dark" : "light";
+  }, [values.theme]);
 
   function update<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
     setStatus("idle");
